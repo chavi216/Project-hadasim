@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import api from '../api/axios';
 
 const Teacher = () => {
@@ -6,6 +7,8 @@ const Teacher = () => {
     const [searchid, setSearchid] = useState('');
     const [tableTitle, setTableTitle] = useState('אנא בחרי פעולה');
     const name = localStorage.getItem('teacherName');
+    const teacherid = localStorage.getItem('teacherid');
+    const navigate = useNavigate();
     const fetchAll = async () => {
         try {
             const res = await api.get('/?role=teacher'); 
@@ -17,9 +20,9 @@ const Teacher = () => {
     };
 
     const fetchMyClass = async () => {
-        const id= localStorage.getItem('teacherid');
+        const teacherId = localStorage.getItem('teacherid');
         try {
-            const res = await api.get(`/my-students/${id}`);
+            const res = await api.get(`/my-students/${teacherId}`);
             setData(res.data);
             setTableTitle("התלמידות הכיתה ");
         } catch (err) {
@@ -105,6 +108,9 @@ const Teacher = () => {
                             </div>
                         )}
                     </div>
+                    <button onClick={() => navigate(`/map/${teacherid}`)}>
+    צפייה במפת תלמידות
+</button>
                 </section>
             </main>
         </div>
