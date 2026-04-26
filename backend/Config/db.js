@@ -1,6 +1,5 @@
 const mysql = require('mysql2/promise'); 
-require('dotenv').config(); // טוען את הסיסמה מהקובץ שמעל
-
+require('dotenv').config(); 
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root', 

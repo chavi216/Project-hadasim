@@ -27,16 +27,36 @@ const User = {
         const [rows] = await db.execute('SELECT * FROM users');
         return rows;
     },
-    updateLocation: async (id, location) => {
-        await db.execute('UPDATE users SET location = ? WHERE id = ?', [location, id]);
-    },
-    saveLocation: async (userId, lat, lng) => {
+  saveLocation: async (userId, lat, lng) => {
     return db.execute(
-        'INSERT INTO locations (user_id, latitude, longitude) VALUES (?, ?, ?)',
+        // הוספת NOW() כדי שהזמן יתעדכן אוטומטית
+        'INSERT INTO locations (user_id, latitude, longitude, recorded_at) VALUES (?, ?, ?, NOW())',
         [userId, lat, lng]
     );
 }
+,
+findLocations: async (teacherId) => {
+        const query = `
+            SELECT l.user_id, l.latitude, l.longitude, l.recorded_at
+            FROM locations l
+            JOIN users u ON l.user_id = u.id
+            JOIN users t ON u.class_id = t.class_id
+            WHERE t.id = ? AND t.role = 'teacher'
+            AND (l.user_id, l.recorded_at) IN (
+                SELECT user_id, MAX(recorded_at)
+                FROM locations GROUP BY user_id
+            )
+        `;
+        const [locations] = await db.execute(query, [teacherId]);
+        return locations;
+    }
+
+
+
 };
+
+
+
 
 
 module.exports = User;

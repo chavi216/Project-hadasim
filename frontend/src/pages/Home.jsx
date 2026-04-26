@@ -11,6 +11,7 @@ const Home = () => {
             const res = await api.post('/login', { id: id });
             localStorage.setItem('teacherid', id);
             localStorage.setItem('teacherName', res.data.teacher.first_name);
+            localStorage.setItem('userRole', res.data.teacher.role);
             navigate('/Teacher');
         } catch (err) {
             alert(err.response?.data?.error || "גישה נדחתה!");
