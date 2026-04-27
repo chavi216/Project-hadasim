@@ -10,8 +10,6 @@ const Register = () => {
     if (user.id.length !== 9) return alert("תעודת זהות לא תקינה!");
     
     try {
-        // שימי לב: אנחנו שולחים את אובייקט ה-user שכולל 
-        // id, first_name, last_name, class_id, role
         const res = await api.post('/register', user); 
         
         alert("נרשמת בהצלחה!");
@@ -19,13 +17,12 @@ const Register = () => {
         if (user.role === 'teacher') {
             localStorage.setItem('teacherid', user.id);
             localStorage.setItem('teacherName', user.first_name);
-            localStorage.setItem('userRole', 'teacher'); // חשוב עבור הגנת הנתיבים ב-Teacher.jsx
+            localStorage.setItem('userRole', 'teacher'); 
             navigate('/Teacher');
         } else {
             navigate('/');
         }
     } catch (err) {
-        // הדפסת השגיאה המדויקת מהשרת כדי שתדעי מה חסר ב-DB
         console.error("Server Error:", err.response?.data);
         alert("שגיאה בהרשמה: " + (err.response?.data?.error || "נסה שוב"));
     }

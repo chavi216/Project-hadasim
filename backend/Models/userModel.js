@@ -45,13 +45,11 @@ findLocations: async (teacherId) => {
     },
   saveLocation: async (userId, lat, lng) => {
     return db.execute(
-        // הוספת NOW() כדי שהזמן יתעדכן אוטומטית
         'INSERT INTO locations (user_id, latitude, longitude, recorded_at) VALUES (?, ?, ?, NOW())',
         [userId, lat, lng]
     );
 }
 ,
-// בתוך userModel.js
 findLocations: async (teacherId) => {
     const query = `
         SELECT 

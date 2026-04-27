@@ -3,7 +3,6 @@ import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// פונקציה ליצירת אייקונים
 const createIcon = (color) => new L.Icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -14,14 +13,13 @@ const createIcon = (color) => new L.Icon({
 });
 
 const icons = {
-    me: createIcon('green'),      // אני
-    teacher: createIcon('blue'),  // מורות אחרות
-    myStudent: createIcon('gold'),// תלמידות שלי
-    other: createIcon('red'),     // תלמידות אחרות
-    alert: createIcon('violet')   // תלמידה שהתרחקה (סגול בולט)
+    me: createIcon('green'),      
+    teacher: createIcon('blue'),  
+    myStudent: createIcon('gold'),
+    other: createIcon('red'),     
+    alert: createIcon('violet')   
 };
 
-// פונקציית עזר לחישוב מרחק בתוך הרכיב
 const getDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -38,7 +36,6 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
     const myId = String(user.id || '').trim();
     const myClassId = String(user.class_id || '').trim();
 
-    // קביעת מרכז המפה: אם יש מיקום מורה, נתמקד בו. אם לא, בירושלים.
     const center = teacherLocation ? [teacherLocation.lat, teacherLocation.lng] : [31.7683, 35.2137];
 
     return (
@@ -46,11 +43,11 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
             <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-                {/* ציור רדיוס 3 ק"מ סביב המורה */}
+
                 {teacherLocation && (
                     <Circle 
                         center={[teacherLocation.lat, teacherLocation.lng]}
-                        radius={3000} // במטרים
+                        radius={3000} 
                         pathOptions={{ color: '#2ecc71', fillColor: '#2ecc71', fillOpacity: 0.1 }}
                     />
                 )}
@@ -67,14 +64,10 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
                     let currentIcon = icons.other; 
                     let label = "תלמידה אחרת";
                     let isTooFar = false;
-
-                    // חישוב מרחק אם יש מיקום מורה
                     if (teacherLocation) {
                         const dist = getDistance(teacherLocation.lat, teacherLocation.lng, lat, lng);
                         if (dist > 3) isTooFar = true;
                     }
-
-                    // לוגיקת צבעים
                     if (currentId === myId) {
                         currentIcon = icons.me;
                         label = "אני (מורה)";
@@ -82,7 +75,6 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
                         currentIcon = icons.teacher;
                         label = "מורה נוספת";
                     } else if (currentClass === myClassId && myClassId !== "") {
-                        // אם היא תלמידה שלי והיא רחוקה - נחליף לאייקון התראה
                         currentIcon = isTooFar ? icons.alert : icons.myStudent;
                         label = isTooFar ? "⚠️ תלמידה שלי (רחוקה!)" : "תלמידה שלי";
                     }

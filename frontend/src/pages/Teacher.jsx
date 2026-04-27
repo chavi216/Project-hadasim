@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from '../api/axios';
 import Map from './Map';
 
-// פונקציה מספר 1: חישוב מרחק אווירי (Haversine)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // רדיוס כדור הארץ בק"מ
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -23,17 +22,16 @@ const Teacher = () => {
     const [showMap, setShowMap] = useState(false); 
     const [mapData, setMapData] = useState([]);
 
-    // --- תוספות לחישוב מרחק ---
-    const [teacherPos, setTeacherPos] = useState(null); // מיקום המורה מה-GPS
-    const [farStudents, setFarStudents] = useState([]); // רשימת התלמידות שהתרחקו
-    // -------------------------
+    const [teacherPos, setTeacherPos] = useState(null); 
+    const [farStudents, setFarStudents] = useState([]); 
+
 
     const teacherid = localStorage.getItem('teacherid');
     const navigate = useNavigate();
     const role = localStorage.getItem('userRole');
     const name = localStorage.getItem('teacherName');
 
-    // הגנת נתיב
+
     useEffect(() => {
         if (role !== 'teacher') { 
             alert("עצור! הדף הזה מיועד למורות בלבד.");
@@ -41,7 +39,6 @@ const Teacher = () => {
         }
     }, [role, navigate]);
 
-    // --- קבלת מיקום המורה מה-GPS של הדפדפן ---
     useEffect(() => {
         if (role === 'teacher') {
             const watchId = navigator.geolocation.watchPosition(
@@ -58,14 +55,14 @@ const Teacher = () => {
         }
     }, [role]);
 
-    // פונקציה שמושכת את נתוני המפה (תלמידות + מיקומים)
+
     const fetchMapUpdate = async () => {
         try {
             const res = await api.get(`/map-data/${teacherid}`);
             console.log("Data from Server:", res.data);
             setMapData(res.data);
 
-            // בדיקת מרחק אוטומטית ברגע שהנתונים מגיעים
+
             if (teacherPos) {
                 const tooFar = res.data.filter(student => {
                     if (!student.latitude || !student.longitude) return false;
@@ -73,7 +70,7 @@ const Teacher = () => {
                         teacherPos.lat, teacherPos.lng,
                         student.latitude, student.longitude
                     );
-                    return dist > 3; // יותר מ-3 ק"מ
+                    return dist > 3; 
                 });
                 setFarStudents(tooFar);
             }
@@ -82,14 +79,27 @@ const Teacher = () => {
         }
     };
 
-    // מנגנון ריענון המפה (סעיף ב')
     useEffect(() => {
         if (role === 'teacher' && showMap) {
-            fetchMapUpdate(); 
-            const interval = setInterval(fetchMapUpdate, 60000); // ריענון כל דקה
-            return () => clearInterval(interval); 
+            let isMounted = true;
+            let timeoutId;
+
+            const safeUpdate = async () => {
+                await fetchMapUpdate(); 
+                if (isMounted) {
+                    timeoutId = setTimeout(safeUpdate, 60000);
+                }
+            };
+
+            safeUpdate(); 
+
+            return () => {
+                isMounted = false;
+                clearTimeout(timeoutId); 
+            };
         }
-    }, [showMap, teacherid, role, teacherPos]); // הוספתי את teacherPos כדי שיחשב מחדש כשהמורה זזה
+    }, [showMap, teacherid, role, teacherPos]);
+
 
     if (role !== 'teacher') return null;
 
@@ -98,7 +108,7 @@ const Teacher = () => {
             const res = await api.get('/?role=teacher'); 
             setData(res.data);
             setTableTitle("כל הרשומות במערכת");
-            setShowMap(false); // סגירת מפה כשעוברים לטבלה
+            setShowMap(false); 
         } catch (err) {
             alert("שגיאה בשליפת נתונים");
         }
@@ -143,7 +153,6 @@ const Teacher = () => {
             </header>
 
             <main className="dashboard-main">
-                {/* הצגת התראה אם יש בנות שהתרחקו */}
                 {farStudents.length > 0 && (
                     <div style={{ backgroundColor: '#ffcccc', padding: '15px', marginBottom: '10px', borderRadius: '8px', border: '2px solid red', textAlign: 'center' }}>
                         <h3 style={{ color: 'red', margin: 0 }}>⚠️ זהירות! {farStudents.length} תלמידות התרחקו מעל 3 ק"מ!</h3>
@@ -175,7 +184,6 @@ const Teacher = () => {
                     <h2>{showMap ? "מפת מיקומים בזמן אמת" : tableTitle}</h2>
                     
                     {showMap ? (
-                        /* שליחת נתוני המפה וגם מיקום המורה לרכיב המפה */
                         <Map studentsLocation={mapData} teacherLocation={teacherPos} />
                     ) : (
                         <div className="table-wrapper">
