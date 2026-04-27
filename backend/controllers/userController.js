@@ -13,18 +13,34 @@ const verifyTeacher = async (req) => {
 
 
 exports.register = async (req, res) => {
+    const { id, first_name, last_name, class_id, role } = req.body;
+    
     try {
-        await user.newuser(req.body);
-        res.status(201).json({ success: true, message: "נרשמת בהצלחה" });
+        await user.newuser({ id, first_name, last_name, class_id, role });
+        if (role === 'student') {
+            let baseLat = 31.7683; 
+            let baseLng = 35.2137;
+            const teacherLoc = await user.getTeacherLocationByClass(class_id);    
+            if (teacherLoc && teacherLoc.latitude && teacherLoc.longitude) {
+                baseLat = teacherLoc.latitude;
+                baseLng = teacherLoc.longitude;
+            }
+            const offsetLat = (Math.random() * 2 - 1) * 0.027;
+            const offsetLng = (Math.random() * 2 - 1) * 0.027;
+            const finalLat = baseLat + offsetLat;
+            const finalLng = baseLng + offsetLng;
+            await user.saveLocation(id, finalLat, finalLng);
+        }
+        res.status(201).send('User registered successfully');
     } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') return handleError(res, "...תעודת זהות כבר קיימת", 400);
-        handleError(res, err);
+        console.error("Registration SQL Error:", err);
+        res.status(500).json({ error: "Error during registration process", details: err.message });
     }
 };
 
 exports.getStudents = async (req, res) => {
     try {
-        const students = await user.findStudents(req.params.teacherId);
+        const students = await user.findStudents(); 
         res.json(students);
     } catch (err) {
         console.error("SQL Error Details:", err);
@@ -71,33 +87,11 @@ exports.login = async (req, res) => {
 exports.getMapData = async (req, res) => {
     try {
         const teacherId = req.params.teacherId;
-        const students = await user.findStudents(teacherId);
         const locations = await user.findLocations(teacherId);
-
-        // הדפסת בדיקה לטרמינל - ככה תדעי אם ה-DB בכלל מחזיר מיקומים
         console.log(`--- Map Data Debug ---`);
         console.log(`Teacher ID: ${teacherId}`);
-        console.log(`Students found: ${students.length}`);
         console.log(`Locations found: ${locations.length}`);
-
-        // 2. חיבור הנתונים
-        const combinedData = students.map(s => {
-            // טיפ חשוב: המרה ל-String כדי לוודא שההשוואה תצליח גם אם אחד מהם הוא מספר
-            const loc = locations.find(l => String(l.user_id) === String(s.id));
-            
-            if (loc) {
-                console.log(`✅ Match found for student: ${s.first_name}`);
-            }
-
-            return {
-                ...s,
-                lat: loc ? loc.latitude : null,
-                lng: loc ? loc.longitude : null,
-                time: loc ? loc.recorded_at : null
-            };
-        });
-
-        res.json(combinedData);
+        res.json(locations);
     } catch (err) {
         console.error("Error in getMapData:", err);
         handleError(res, err);

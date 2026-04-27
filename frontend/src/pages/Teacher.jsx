@@ -1,17 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import api from '../api/axios';
-import Map from './Map'; // וודאי שהשם תואם לשם הקובץ שלך
+import Map from './Map';
+
+// פונקציה מספר 1: חישוב מרחק אווירי (Haversine)
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // רדיוס כדור הארץ בק"מ
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
 
 const Teacher = () => {
     const [data, setData] = useState([]);
     const [searchid, setSearchid] = useState('');
     const [tableTitle, setTableTitle] = useState('אנא בחרי פעולה');
     
-    // --- הגדרות חסרות שגרמו לשגיאה ---
     const [showMap, setShowMap] = useState(false); 
     const [mapData, setMapData] = useState([]);
-    // --------------------------------
+
+    // --- תוספות לחישוב מרחק ---
+    const [teacherPos, setTeacherPos] = useState(null); // מיקום המורה מה-GPS
+    const [farStudents, setFarStudents] = useState([]); // רשימת התלמידות שהתרחקו
+    // -------------------------
 
     const teacherid = localStorage.getItem('teacherid');
     const navigate = useNavigate();
@@ -26,12 +41,42 @@ const Teacher = () => {
         }
     }, [role, navigate]);
 
+    // --- קבלת מיקום המורה מה-GPS של הדפדפן ---
+    useEffect(() => {
+        if (role === 'teacher') {
+            const watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    setTeacherPos({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    });
+                },
+                (err) => console.error("שגיאה בקבלת GPS של המורה", err),
+                { enableHighAccuracy: true }
+            );
+            return () => navigator.geolocation.clearWatch(watchId);
+        }
+    }, [role]);
+
     // פונקציה שמושכת את נתוני המפה (תלמידות + מיקומים)
     const fetchMapUpdate = async () => {
         try {
-            // וודאי שהנתיב הזה קיים ב-Backend שלך (map-data)
             const res = await api.get(`/map-data/${teacherid}`);
+            console.log("Data from Server:", res.data);
             setMapData(res.data);
+
+            // בדיקת מרחק אוטומטית ברגע שהנתונים מגיעים
+            if (teacherPos) {
+                const tooFar = res.data.filter(student => {
+                    if (!student.latitude || !student.longitude) return false;
+                    const dist = calculateDistance(
+                        teacherPos.lat, teacherPos.lng,
+                        student.latitude, student.longitude
+                    );
+                    return dist > 3; // יותר מ-3 ק"מ
+                });
+                setFarStudents(tooFar);
+            }
         } catch (err) {
             console.error("שגיאה בעדכון המפה");
         }
@@ -44,7 +89,7 @@ const Teacher = () => {
             const interval = setInterval(fetchMapUpdate, 60000); // ריענון כל דקה
             return () => clearInterval(interval); 
         }
-    }, [showMap, teacherid, role]);
+    }, [showMap, teacherid, role, teacherPos]); // הוספתי את teacherPos כדי שיחשב מחדש כשהמורה זזה
 
     if (role !== 'teacher') return null;
 
@@ -98,11 +143,18 @@ const Teacher = () => {
             </header>
 
             <main className="dashboard-main">
+                {/* הצגת התראה אם יש בנות שהתרחקו */}
+                {farStudents.length > 0 && (
+                    <div style={{ backgroundColor: '#ffcccc', padding: '15px', marginBottom: '10px', borderRadius: '8px', border: '2px solid red', textAlign: 'center' }}>
+                        <h3 style={{ color: 'red', margin: 0 }}>⚠️ זהירות! {farStudents.length} תלמידות התרחקו מעל 3 ק"מ!</h3>
+                        <p>{farStudents.map(s => `${s.first_name} ${s.last_name}`).join(', ')}</p>
+                    </div>
+                )}
+
                 <section className="actions-bar">
                     <div className="btn-group">
                         <button onClick={fetchAll} className="btn-secondary">הצג את כולם</button>
                         <button onClick={fetchMyClass} className="btn-primary">הכיתה שלי</button>
-                        {/* כפתור למעבר למפה בתוך הדף */}
                         <button onClick={() => setShowMap(!showMap)} className="btn-map">
                             {showMap ? "חזרה לטבלה" : "צפייה במפה חיה"}
                         </button>
@@ -123,10 +175,9 @@ const Teacher = () => {
                     <h2>{showMap ? "מפת מיקומים בזמן אמת" : tableTitle}</h2>
                     
                     {showMap ? (
-                        /* הצגת המפה */
-                        <Map studentsLocation={mapData} />
+                        /* שליחת נתוני המפה וגם מיקום המורה לרכיב המפה */
+                        <Map studentsLocation={mapData} teacherLocation={teacherPos} />
                     ) : (
-                        /* הצגת הטבלה */
                         <div className="table-wrapper">
                             {data.length > 0 ? (
                                 <table className="styled-table">

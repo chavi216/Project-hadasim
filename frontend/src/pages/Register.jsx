@@ -8,20 +8,28 @@ const Register = () => {
    const handleSubmit = async (e) => {
     e.preventDefault();
     if (user.id.length !== 9) return alert("תעודת זהות לא תקינה!");
+    
     try {
-        const res = await api.post('/register', user);
+        // שימי לב: אנחנו שולחים את אובייקט ה-user שכולל 
+        // id, first_name, last_name, class_id, role
+        const res = await api.post('/register', user); 
+        
         alert("נרשמת בהצלחה!");
+        
         if (user.role === 'teacher') {
             localStorage.setItem('teacherid', user.id);
             localStorage.setItem('teacherName', user.first_name);
+            localStorage.setItem('userRole', 'teacher'); // חשוב עבור הגנת הנתיבים ב-Teacher.jsx
             navigate('/Teacher');
         } else {
             navigate('/');
         }
     } catch (err) {
+        // הדפסת השגיאה המדויקת מהשרת כדי שתדעי מה חסר ב-DB
+        console.error("Server Error:", err.response?.data);
         alert("שגיאה בהרשמה: " + (err.response?.data?.error || "נסה שוב"));
     }
-    };
+};
 
     return (
         <div className="container">
