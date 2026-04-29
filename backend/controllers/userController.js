@@ -3,6 +3,12 @@ const handleError = (res, error, status = 500) => {
     return res.status(status).json({ success: false, error: error.message || error });
 };
 
+const convertToDecimal = (coord) => {
+    if (!coord || coord.Degrees === undefined) return 0;
+    return parseFloat(coord.Degrees) + 
+           (parseFloat(coord.Minutes) / 60) + 
+           (parseFloat(coord.Seconds) / 3600);
+};
 
 const verifyTeacher = async (req) => {
     const requesterId = req.headers['user-id']; 
@@ -15,9 +21,7 @@ const verifyTeacher = async (req) => {
 exports.register = async (req, res) => {
     const { id, first_name, last_name, class_id, role } = req.body;
     try {
-        await user.newuser({ id, first_name, last_name, class_id, role });
-        
-        // יצירת מיקום ראשוני לכולם כדי שיופיעו על המפה מיד
+        await user.newuser({ id, first_name, last_name, class_id, role });    
         let baseLat = 31.7683; 
         let baseLng = 35.2137;
 
@@ -38,16 +42,31 @@ exports.register = async (req, res) => {
     }
 };
 
-// בתוך controllers/userController.js
+exports.updateLocation = async (req, res) => {
+    try {
+        const { ID, Coordinates } = req.body;
+        
+        if (!ID || !Coordinates) {
+            return res.status(400).json({ error: "Missing ID or Coordinates" });
+        }
+
+        const lat = convertToDecimal(Coordinates.Latitude);
+        const lng = convertToDecimal(Coordinates.Longitude);
+
+        await user.saveLocation(ID, lat, lng);
+        res.status(200).json({ success: true, message: "Location updated" });
+    } catch (err) {
+        console.error("Error in updateLocation controller:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
 exports.getStudents = async (req, res) => {
     try {
-        const teacherId = req.params.teacherId; // שליפת ה-ID מהנתיב
+        const teacherId = req.params.teacherId; 
         
         if (!teacherId) {
             return res.status(400).json({ error: "Missing teacher ID" });
         }
-
-        // שימוש בפונקציה החדשה שיצרנו במודל
         const students = await user.findStudents(teacherId); 
         
         res.json(students);
@@ -107,19 +126,6 @@ exports.getMapData = async (req, res) => {
         handleError(res, err);
     }
 };
-exports.updateLocation = async (req, res) => {
-    try {
-        const { userId, latitude, longitude } = req.body;
 
-        if (!userId || latitude === undefined || longitude === undefined) {
-            return res.status(400).json({ message: "Missing required fields" });
-        }
 
-        await user.saveLocation(userId, latitude, longitude);
-        
-        res.status(200).json({ message: "Location updated" });
-    } catch (err) {
-        console.error("Error in updateLocation controller:", err);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
+

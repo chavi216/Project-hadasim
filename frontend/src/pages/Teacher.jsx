@@ -4,7 +4,7 @@ import api from '../api/axios';
 import Map from './Map';
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // רדיוס כדור הארץ בק"מ
+    const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = 
@@ -39,16 +39,12 @@ const Teacher = () => {
         }
     }, [role, navigate]);
 
-// בתוך Teacher.jsx
 useEffect(() => {
     if (role === 'teacher') {
         const watchId = navigator.geolocation.watchPosition((pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             setTeacherPos({ lat, lng });
-            
-            /* --- תסמני את זה בהערה בזמן בדיקות פוסטמן/סימולציה --- */
-            // api.post('/update-location', { userId: teacherid, latitude: lat, longitude: lng });
         });
         return () => navigator.geolocation.clearWatch(watchId);
     }
