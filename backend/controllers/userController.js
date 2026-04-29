@@ -10,16 +10,29 @@ const convertToDecimal = (coord) => {
            (parseFloat(coord.Seconds) / 3600);
 };
 
-const verifyTeacher = async (req) => {
-    const requesterId = req.headers['user-id']; 
-    if (!requesterId) return false;
-    const requester = await user.findByid(requesterId);
-    return requester && requester.role === 'teacher';
+exports.verifyTeacher = async (req, res, next) => {
+    try {
+        const requesterId = req.headers['user-id']; 
+        if (!requesterId) return res.status(401).json({ message: "Missing authorization ID" });
+        
+        const requester = await user.findByid(requesterId);
+        if (requester && requester.role === 'teacher') {
+            next(); 
+        } else {
+            res.status(403).json({ message: "Access denied. Teachers only." });
+        }
+    } catch (err) {
+        handleError(res, err);
+    }
 };
 
 
 exports.register = async (req, res) => {
     const { id, first_name, last_name, class_id, role } = req.body;
+
+    if (!id || String(id).length !== 9) {
+        return res.status(400).json({ error: "תעודת זהות חייבת להיות בת 9 ספרות" });
+    }
     try {
         await user.newuser({ id, first_name, last_name, class_id, role });    
         let baseLat = 31.7683; 
@@ -44,16 +57,17 @@ exports.register = async (req, res) => {
 
 exports.updateLocation = async (req, res) => {
     try {
-        const { ID, Coordinates } = req.body;
+        const { ID, Coordinates, Time } = req.body;
         
-        if (!ID || !Coordinates) {
-            return res.status(400).json({ error: "Missing ID or Coordinates" });
+        if (!ID || !Coordinates || !Time) {
+            return res.status(400).json({ error: "Missing ID, Coordinates or Time" });
         }
-
+        if (String(ID).length !== 9) {
+            return res.status(400).json({ error: "ID must be exactly 9 digits" });
+        }
         const lat = convertToDecimal(Coordinates.Latitude);
         const lng = convertToDecimal(Coordinates.Longitude);
-
-        await user.saveLocation(ID, lat, lng);
+        await user.saveLocation(ID, lat, lng, Time);
         res.status(200).json({ success: true, message: "Location updated" });
     } catch (err) {
         console.error("Error in updateLocation controller:", err);

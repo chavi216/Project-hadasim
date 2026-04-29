@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { calculateDistance } from '../Service/Service';
 
 const createIcon = (color) => new L.Icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
@@ -20,13 +21,7 @@ const icons = {
     otherStudent: createIcon('red')
 };
 
-const getDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; 
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
+
 
 const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
     const myId = String(localStorage.getItem('teacherid') || '').trim();
@@ -69,7 +64,7 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
                     let dist = 0;
 
                     if (teacherLocation && isMyStudent && role === 'student') {
-                        dist = getDistance(teacherLocation.lat, teacherLocation.lng, loc.lat, loc.lng);
+                        dist = calculateDistance(teacherLocation.lat, teacherLocation.lng, loc.lat, loc.lng);
                         if (dist > 3) isTooFar = true;
                     }
 

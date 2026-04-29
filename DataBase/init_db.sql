@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS locations (
     latitude DECIMAL(10, 8) NOT NULL,      
     longitude DECIMAL(11, 8) NOT NULL,
     recorded_at DATETIME NOT NULL,        
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_recorded (user_id, recorded_at DESC)
 );

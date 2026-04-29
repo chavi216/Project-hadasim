@@ -47,13 +47,13 @@ findLocations: async (teacherId) => {
         const [rows] = await db.execute('SELECT * FROM users');
         return rows;
     },
-  saveLocation: async (userId, lat, lng) => {
-    return db.execute(
-        'INSERT INTO locations (user_id, latitude, longitude, recorded_at) VALUES (?, ?, ?, NOW())',
-        [userId, lat, lng]
-    );
-}
-,
+saveLocation : async (id, lat, lng, time) => {
+    const query = 'INSERT INTO locations (user_id, latitude, longitude, recorded_at) VALUES (?, ?, ?, ?)';
+    const formattedTime = time ? time.replace('T', ' ').replace('Z', '') : new Date();
+    await db.execute(query, [id, lat, lng, formattedTime]);
+},
+
+
 getTeacherLocationByClass: async (classId) => {
         const query = `
             SELECT l.latitude, l.longitude 

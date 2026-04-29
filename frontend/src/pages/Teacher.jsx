@@ -2,17 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import api from '../api/axios';
 import Map from './Map';
+import { calculateDistance } from '../Service/Service';
 
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; 
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-};
+
 
 const Teacher = () => {
     const [data, setData] = useState([]);
@@ -52,7 +44,17 @@ useEffect(() => {
 
 const fetchMapUpdate = async () => {
     try {
-const res = await api.get(`/map-data/${teacherid}?t=${new Date().getTime()}`);        console.log("Data from Server:", res.data);
+        if (!teacherid) {
+            console.error("No teacher ID found in storage");
+            return;
+        }
+        const res = await api.get(`/map-data/${teacherid}?t=${new Date().getTime()}`, {
+            headers: {
+                'user-id': teacherid 
+            }
+        });
+
+        console.log("Data from Server:", res.data);
         setMapData(res.data);
 
         if (teacherPos) {
@@ -98,8 +100,7 @@ const res = await api.get(`/map-data/${teacherid}?t=${new Date().getTime()}`);  
 
     const fetchAll = async () => {
         try {
-            const res = await api.get('/?role=teacher'); 
-            setData(res.data);
+const res = await api.get('/?role=teacher', { headers: { 'user-id': teacherid } });            setData(res.data);
             setTableTitle("כל הרשומות במערכת");
             setShowMap(false); 
         } catch (err) {
@@ -109,8 +110,7 @@ const res = await api.get(`/map-data/${teacherid}?t=${new Date().getTime()}`);  
 
     const fetchMyClass = async () => {
         try {
-            const res = await api.get(`/my-students/${teacherid}`);
-            setData(res.data);
+const res = await api.get(`/my-students/${teacherid}`, { headers: { 'user-id': teacherid } });            setData(res.data);
             setTableTitle("התלמידות הכיתה");
             setShowMap(false);
         } catch (err) {
@@ -121,8 +121,7 @@ const res = await api.get(`/map-data/${teacherid}?t=${new Date().getTime()}`);  
     const handleSearch = async () => {
         if (searchid.length !== 9) return alert("תעודת זהות לא תקינה!");
         try {
-            const res = await api.get(`/${searchid}`);
-            setData(Array.isArray(res.data) ? res.data : [res.data]);
+const res = await api.get(`/${searchid}`, { headers: { 'user-id': teacherid } });            setData(Array.isArray(res.data) ? res.data : [res.data]);
             setTableTitle(`תוצאת חיפוש : ${searchid}`);
             setShowMap(false);
         } catch (err) {
