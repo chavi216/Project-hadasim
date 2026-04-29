@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -13,37 +13,43 @@ const createIcon = (color) => new L.Icon({
 });
 
 const icons = {
-    me: createIcon('green'),      
-    teacher: createIcon('blue'),  
+    me: createIcon('green'),
     myStudent: createIcon('gold'),
-    other: createIcon('red'),     
-    alert: createIcon('violet')   
+    alert: createIcon('violet'),
+    teacher: createIcon('blue'),
+    otherStudent: createIcon('red')
 };
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
+    const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const myId = String(user.id || '').trim();
-    const myClassId = String(user.class_id || '').trim();
+    const myId = String(localStorage.getItem('teacherid') || '').trim();
+
+    const processedData = useMemo(() => {
+        const uniqueMap = new Map();
+        studentsLocation.forEach(item => {
+            const lat = parseFloat(item.latitude);
+            const lng = parseFloat(item.longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                uniqueMap.set(String(item.id), { ...item, lat, lng });
+            }
+        });
+        return Array.from(uniqueMap.values());
+    }, [studentsLocation]);
 
     const center = teacherLocation ? [teacherLocation.lat, teacherLocation.lng] : [31.7683, 35.2137];
 
     return (
-        <div style={{ height: '500px', width: '100%', position: 'relative', border: '1px solid #ccc', borderRadius: '10px' }}>
-            <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+        <div style={{ height: '550px', width: '100%', position: 'relative', border: '2px solid #ddd', borderRadius: '15px', overflow: 'hidden' }}>
+            <MapContainer center={center} zoom={14} style={{ height: '100%', width: '100%' }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-
+                
                 {teacherLocation && (
                     <Circle 
                         center={[teacherLocation.lat, teacherLocation.lng]}
@@ -52,43 +58,56 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
                     />
                 )}
 
-                {studentsLocation?.map((loc, index) => {
-                    const lat = parseFloat(loc.latitude);
-                    const lng = parseFloat(loc.longitude);
-                    if (isNaN(lat) || isNaN(lng)) return null;
-
-                    const currentId = String(loc.id || loc.user_id || '').trim();
-                    const currentRole = String(loc.role || '').toLowerCase().trim();
-                    const currentClass = String(loc.class_id || '').trim();
-
-                    let currentIcon = icons.other; 
-                    let label = "תלמידה אחרת";
+                {processedData.map((loc) => {
+                    const isMe = String(loc.id) === myId;
+                    const isMyStudent = loc.is_my_student === 1;
+                    const role = String(loc.role || '').toLowerCase().trim();
+                    
+                    let currentIcon = icons.otherStudent;
+                    let label = "תלמידה (כיתה אחרת)";
                     let isTooFar = false;
-                    if (teacherLocation) {
-                        const dist = getDistance(teacherLocation.lat, teacherLocation.lng, lat, lng);
+                    let dist = 0;
+
+                    if (teacherLocation && isMyStudent && role === 'student') {
+                        dist = getDistance(teacherLocation.lat, teacherLocation.lng, loc.lat, loc.lng);
                         if (dist > 3) isTooFar = true;
                     }
-                    if (currentId === myId) {
+
+                    if (isMe) {
                         currentIcon = icons.me;
-                        label = "אני (מורה)";
-                    } else if (currentRole === 'teacher') {
+                        label = "אני (המורה המחוברת)";
+                    } else if (role === 'teacher') {
                         currentIcon = icons.teacher;
-                        label = "מורה נוספת";
-                    } else if (currentClass === myClassId && myClassId !== "") {
+                        label = "מורה עמיתה";
+                    } else if (isMyStudent) {
                         currentIcon = isTooFar ? icons.alert : icons.myStudent;
-                        label = isTooFar ? "⚠️ תלמידה שלי (רחוקה!)" : "תלמידה שלי";
+                        label = isTooFar ? "⚠️ תלמידה שלי (חריגה!)" : "תלמידה שלי";
                     }
 
                     return (
-                        <Marker key={index} position={[lat, lng]} icon={currentIcon}>
+                        <Marker key={loc.id} position={[loc.lat, loc.lng]} icon={currentIcon} zIndexOffset={isMe ? 1000 : 0}>
                             <Popup>
-                                <div style={{ direction: 'rtl', textAlign: 'right' }}>
-                                    <strong style={{ color: isTooFar ? 'red' : 'black' }}>
-                                        {loc.first_name} {loc.last_name}
-                                    </strong><br />
-                                    {label}<br />
-                                    כיתה: {loc.class_id || 'לא ידוע'}<br />
-                                    {isTooFar && <b style={{ color: 'red' }}>מרחק: מעל 3 ק"מ!</b>}
+                                <div style={{ direction: 'rtl', textAlign: 'right', minWidth: '170px' }}>
+                                    <strong style={{ fontSize: '16px' }}>{loc.first_name} {loc.last_name}</strong><br />
+                                    <span style={{ color: '#666' }}>{label}</span>
+                                    <hr style={{ margin: '8px 0', border: '0', borderTop: '1px solid #eee' }} />
+                                    <div style={{ fontSize: '13px', marginBottom: '10px' }}>
+                                        <b>כיתה:</b> {loc.class_id || '---'}<br />
+                                        <b>מיקום:</b> {loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}
+                                        {isTooFar && <div style={{ color: 'red', fontWeight: 'bold' }}>חריגה: {dist.toFixed(2)} ק"מ</div>}
+                                    </div>
+                                    <a 
+                                        href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'block', backgroundColor: '#3498db', color: 'white',
+                                            textAlign: 'center', padding: '7px', borderRadius: '5px',
+                                            textDecoration: 'none', fontSize: '12px', fontWeight: 'bold'
+                                        }}
+                                    >
+                                        ניווט ב-Google Maps 📍
+                                    </a>
                                 </div>
                             </Popup>
                         </Marker>
@@ -97,16 +116,16 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
             </MapContainer>
 
             <div style={{
-                position: 'absolute', bottom: '20px', left: '20px', backgroundColor: 'white',
-                padding: '10px', zIndex: 1000, borderRadius: '8px', boxShadow: '0 0 10px rgba(0,0,0,0.3)',
-                direction: 'rtl', fontSize: '13px', border: '2px solid #333'
+                position: 'absolute', bottom: '25px', right: '20px', zIndex: 1000, 
+                backgroundColor: 'rgba(255, 255, 255, 0.95)', padding: '12px', borderRadius: '10px', 
+                boxShadow: '0 4px 15px rgba(0,0,0,0.15)', direction: 'rtl', fontSize: '13px'
             }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>מקרא מפה:</div>
-                <div><span style={{ color: '#2ecc71' }}>●</span> אני / רדיוס בטוח</div>
-                <div><span style={{ color: '#f1c40f' }}>●</span> תלמידות שלי (בטווח)</div>
-                <div><span style={{ color: '#9b59b6' }}>●</span> ⚠️ תלמידה רחוקה מהמורה</div>
-                <div><span style={{ color: '#e74c3c' }}>●</span> תלמידות אחרות</div>
-                <div><span style={{ color: '#3498db' }}>●</span> מורות אחרות</div>
+                <div style={{ fontWeight: 'bold', marginBottom: '5px', borderBottom: '1px solid #eee' }}>מקרא:</div>
+                <div><span style={{ color: '#2ecc71' }}>●</span> אני</div>
+                <div><span style={{ color: '#f1c40f' }}>●</span> תלמידה שלי</div>
+                <div><span style={{ color: '#9b59b6' }}>●</span> ⚠️ חריגת מרחק</div>
+                <div><span style={{ color: '#3498db' }}>●</span> מורה עמיתה</div>
+                <div><span style={{ color: '#e74c3c' }}>●</span> תלמידה אחרת</div>
             </div>
         </div>
     );

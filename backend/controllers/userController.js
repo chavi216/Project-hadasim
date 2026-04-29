@@ -14,39 +14,49 @@ const verifyTeacher = async (req) => {
 
 exports.register = async (req, res) => {
     const { id, first_name, last_name, class_id, role } = req.body;
-    
     try {
         await user.newuser({ id, first_name, last_name, class_id, role });
+        
+        // יצירת מיקום ראשוני לכולם כדי שיופיעו על המפה מיד
+        let baseLat = 31.7683; 
+        let baseLng = 35.2137;
+
         if (role === 'student') {
-            let baseLat = 31.7683; 
-            let baseLng = 35.2137;
             const teacherLoc = await user.getTeacherLocationByClass(class_id);    
-            if (teacherLoc && teacherLoc.latitude && teacherLoc.longitude) {
-                baseLat = teacherLoc.latitude;
-                baseLng = teacherLoc.longitude;
+            if (teacherLoc && teacherLoc.latitude) {
+                baseLat = parseFloat(teacherLoc.latitude);
+                baseLng = parseFloat(teacherLoc.longitude);
             }
-            const offsetLat = (Math.random() * 2 - 1) * 0.027;
-            const offsetLng = (Math.random() * 2 - 1) * 0.027;
-            const finalLat = baseLat + offsetLat;
-            const finalLng = baseLng + offsetLng;
-            await user.saveLocation(id, finalLat, finalLng);
         }
+
+        const offset = () => (Math.random() * 2 - 1) * 0.01;
+        await user.saveLocation(id, baseLat + offset(), baseLng + offset());
+
         res.status(201).send('User registered successfully');
     } catch (err) {
-        console.error("Registration SQL Error:", err);
-        res.status(500).json({ error: "Error during registration process", details: err.message });
+        res.status(500).json({ error: "Error during registration", details: err.message });
     }
 };
 
+// בתוך controllers/userController.js
 exports.getStudents = async (req, res) => {
     try {
-        const students = await user.findStudents(); 
+        const teacherId = req.params.teacherId; // שליפת ה-ID מהנתיב
+        
+        if (!teacherId) {
+            return res.status(400).json({ error: "Missing teacher ID" });
+        }
+
+        // שימוש בפונקציה החדשה שיצרנו במודל
+        const students = await user.findStudents(teacherId); 
+        
         res.json(students);
     } catch (err) {
         console.error("SQL Error Details:", err);
-        handleError(res, err);
+        res.status(500).json({ error: "שגיאה בשליפת התלמידות", details: err.message });
     }
 };
+
 
 exports.getUserByid = async (req, res) => {
     try {
@@ -95,5 +105,21 @@ exports.getMapData = async (req, res) => {
     } catch (err) {
         console.error("Error in getMapData:", err);
         handleError(res, err);
+    }
+};
+exports.updateLocation = async (req, res) => {
+    try {
+        const { userId, latitude, longitude } = req.body;
+
+        if (!userId || latitude === undefined || longitude === undefined) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        await user.saveLocation(userId, latitude, longitude);
+        
+        res.status(200).json({ message: "Location updated" });
+    } catch (err) {
+        console.error("Error in updateLocation controller:", err);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };

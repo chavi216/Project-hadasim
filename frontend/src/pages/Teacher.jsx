@@ -39,46 +39,43 @@ const Teacher = () => {
         }
     }, [role, navigate]);
 
-    useEffect(() => {
-        if (role === 'teacher') {
-            const watchId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    setTeacherPos({
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude
-                    });
-                },
-                (err) => console.error("שגיאה בקבלת GPS של המורה", err),
-                { enableHighAccuracy: true }
-            );
-            return () => navigator.geolocation.clearWatch(watchId);
+// בתוך Teacher.jsx
+useEffect(() => {
+    if (role === 'teacher') {
+        const watchId = navigator.geolocation.watchPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setTeacherPos({ lat, lng });
+            
+            /* --- תסמני את זה בהערה בזמן בדיקות פוסטמן/סימולציה --- */
+            // api.post('/update-location', { userId: teacherid, latitude: lat, longitude: lng });
+        });
+        return () => navigator.geolocation.clearWatch(watchId);
+    }
+}, [role, teacherid]);
+
+const fetchMapUpdate = async () => {
+    try {
+const res = await api.get(`/map-data/${teacherid}?t=${new Date().getTime()}`);        console.log("Data from Server:", res.data);
+        setMapData(res.data);
+
+        if (teacherPos) {
+            const tooFar = res.data.filter(user => {
+                if (!user.latitude || !user.longitude) return false;
+                if (user.role === 'teacher' || user.is_my_student !== 1) return false;
+
+                const dist = calculateDistance(
+                    teacherPos.lat, teacherPos.lng,
+                    user.latitude, user.longitude
+                );
+                return dist > 3; 
+            });
+            setFarStudents(tooFar);
         }
-    }, [role]);
-
-
-    const fetchMapUpdate = async () => {
-        try {
-            const res = await api.get(`/map-data/${teacherid}`);
-            console.log("Data from Server:", res.data);
-            setMapData(res.data);
-
-
-            if (teacherPos) {
-                const tooFar = res.data.filter(student => {
-                    if (!student.latitude || !student.longitude) return false;
-                    const dist = calculateDistance(
-                        teacherPos.lat, teacherPos.lng,
-                        student.latitude, student.longitude
-                    );
-                    return dist > 3; 
-                });
-                setFarStudents(tooFar);
-            }
-        } catch (err) {
-            console.error("שגיאה בעדכון המפה");
-        }
-    };
-
+    } catch (err) {
+        console.error("שגיאה בעדכון המפה", err);
+    }
+};
     useEffect(() => {
         if (role === 'teacher' && showMap) {
             let isMounted = true;
@@ -87,7 +84,7 @@ const Teacher = () => {
             const safeUpdate = async () => {
                 await fetchMapUpdate(); 
                 if (isMounted) {
-                    timeoutId = setTimeout(safeUpdate, 60000);
+                    timeoutId = setTimeout(safeUpdate, 1000);
                 }
             };
 
