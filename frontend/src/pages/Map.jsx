@@ -3,7 +3,6 @@ import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { calculateDistance } from '../Service/Service';
-
 const createIcon = (color) => new L.Icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -12,7 +11,6 @@ const createIcon = (color) => new L.Icon({
     popupAnchor: [1, -34],
     shadowSize: [41, 41]
 });
-
 const icons = {
     me: createIcon('green'),
     myStudent: createIcon('gold'),
@@ -20,9 +18,6 @@ const icons = {
     teacher: createIcon('blue'),
     otherStudent: createIcon('red')
 };
-
-
-
 const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
     const myId = String(localStorage.getItem('teacherid') || '').trim();
 
@@ -37,9 +32,7 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
         });
         return Array.from(uniqueMap.values());
     }, [studentsLocation]);
-
     const center = teacherLocation ? [teacherLocation.lat, teacherLocation.lng] : [31.7683, 35.2137];
-
     return (
         <div style={{ height: '550px', width: '100%', position: 'relative', border: '2px solid #ddd', borderRadius: '15px', overflow: 'hidden' }}>
             <MapContainer center={center} zoom={14} style={{ height: '100%', width: '100%' }}>
@@ -52,17 +45,14 @@ const MapComponent = ({ studentsLocation = [], teacherLocation = null }) => {
                         pathOptions={{ color: '#2ecc71', fillColor: '#2ecc71', fillOpacity: 0.1 }}
                     />
                 )}
-
                 {processedData.map((loc) => {
                     const isMe = String(loc.id) === myId;
                     const isMyStudent = loc.is_my_student === 1;
                     const role = String(loc.role || '').toLowerCase().trim();
-                    
                     let currentIcon = icons.otherStudent;
                     let label = "תלמידה (כיתה אחרת)";
                     let isTooFar = false;
                     let dist = 0;
-
                     if (teacherLocation && isMyStudent && role === 'student') {
                         dist = calculateDistance(teacherLocation.lat, teacherLocation.lng, loc.lat, loc.lng);
                         if (dist > 3) isTooFar = true;

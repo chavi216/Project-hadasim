@@ -3,14 +3,12 @@ import User from '../Models/userModel.js';
 const handleError = (res, error, status = 500) => {
     return res.status(status).json({ success: false, error: error.message || error });
 };
-
 const convertToDecimal = (coord) => {
     if (!coord || coord.Degrees === undefined) return 0;
     return parseFloat(coord.Degrees) + 
            (parseFloat(coord.Minutes) / 60) + 
            (parseFloat(coord.Seconds) / 3600);
 };
-
 export const verifyTeacher = async (req, res, next) => {
     try {
         const requesterId = req.headers['user-id']; 
@@ -26,7 +24,6 @@ export const verifyTeacher = async (req, res, next) => {
         handleError(res, err);
     }
 };
-
 export const register = async (req, res) => {
     try {
         const { id, firstname, lastname, class_id, role, coordinates } = req.body;
@@ -61,7 +58,6 @@ export const register = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
-
 export const updateLocation = async (req, res) => {
     try {
         const { ID, Coordinates, Time } = req.body;
@@ -83,7 +79,6 @@ export const updateLocation = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
-
 export const getStudents = async (req, res) => {
     try {
         const teacherId = req.params.teacherId; 
@@ -95,7 +90,6 @@ export const getStudents = async (req, res) => {
         handleError(res, err);
     }
 };
-
 export const getUserByid = async (req, res) => {
     try {
         const user1 = await User.findByid(req.params.id);
@@ -105,7 +99,6 @@ export const getUserByid = async (req, res) => {
         handleError(res, err);
     }
 };
-
 export const getAllUsers = async (req, res) => {
     try {
         const users = await User.findAll();
@@ -114,7 +107,6 @@ export const getAllUsers = async (req, res) => {
         handleError(res, err);
     }
 };
-
 export const login = async (req, res) => {
     const { id } = req.body;
     try {
@@ -127,7 +119,6 @@ export const login = async (req, res) => {
         handleError(res, err);
     }
 };
-
 export const getMapData = async (req, res) => {
     try {
         const teacherId = req.params.teacherId;

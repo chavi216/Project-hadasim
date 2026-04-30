@@ -10,14 +10,10 @@ const Teacher = () => {
     const [data, setData] = useState([]);
     const [searchid, setSearchid] = useState('');
     const [tableTitle, setTableTitle] = useState('אנא בחרי פעולה');
-    
     const [showMap, setShowMap] = useState(false); 
     const [mapData, setMapData] = useState([]);
-
     const [teacherPos, setTeacherPos] = useState(null); 
     const [farStudents, setFarStudents] = useState([]); 
-
-
     const teacherid = localStorage.getItem('teacherid');
     const navigate = useNavigate();
     const role = localStorage.getItem('userRole');
@@ -41,7 +37,6 @@ useEffect(() => {
         return () => navigator.geolocation.clearWatch(watchId);
     }
 }, [role, teacherid]);
-
 const fetchMapUpdate = async () => {
     try {
         if (!teacherid) {
@@ -53,7 +48,6 @@ const fetchMapUpdate = async () => {
                 'user-id': teacherid 
             }
         });
-
         console.log("Data from Server:", res.data);
         setMapData(res.data);
 
@@ -78,26 +72,20 @@ const fetchMapUpdate = async () => {
         if (role === 'teacher' && showMap) {
             let isMounted = true;
             let timeoutId;
-
             const safeUpdate = async () => {
                 await fetchMapUpdate(); 
                 if (isMounted) {
                     timeoutId = setTimeout(safeUpdate, 1000);
                 }
             };
-
             safeUpdate(); 
-
             return () => {
                 isMounted = false;
                 clearTimeout(timeoutId); 
             };
         }
     }, [showMap, teacherid, role, teacherPos]);
-
-
     if (role !== 'teacher') return null;
-
     const fetchAll = async () => {
         try {
 const res = await api.get('/?role=teacher', { headers: { 'user-id': teacherid } });            setData(res.data);
@@ -107,7 +95,6 @@ const res = await api.get('/?role=teacher', { headers: { 'user-id': teacherid } 
             alert("שגיאה בשליפת נתונים");
         }
     };
-
     const fetchMyClass = async () => {
         try {
 const res = await api.get(`/my-students/${teacherid}`, { headers: { 'user-id': teacherid } });            setData(res.data);
@@ -117,7 +104,6 @@ const res = await api.get(`/my-students/${teacherid}`, { headers: { 'user-id': t
             alert("שגיאה בשליפת הכיתה");
         }
     };
-
     const handleSearch = async () => {
         if (searchid.length !== 9) return alert("תעודת זהות לא תקינה!");
         try {
@@ -133,7 +119,6 @@ const res = await api.get(`/${searchid}`, { headers: { 'user-id': teacherid } })
         localStorage.clear();
         window.location.href = '/';
     };
-
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
@@ -171,7 +156,6 @@ const res = await api.get(`/${searchid}`, { headers: { 'user-id': teacherid } })
                         <button onClick={handleSearch}>חפשי</button>
                     </div>
                 </section>
-
                 <section className="table-section">
                     <h2>{showMap ? "מפת מיקומים בזמן אמת" : tableTitle}</h2>
                     

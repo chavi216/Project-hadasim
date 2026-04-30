@@ -13,8 +13,7 @@ const Register = () => {
     const navigate = useNavigate();
    const handleSubmit = async (e) => {
     e.preventDefault();
-    if (user.id.length !== 9) return alert("תעודת זהות לא תקינה!");
-    
+    if (user.id.length !== 9) return alert("תעודת זהות לא תקינה!"); 
     try {
         const res = await api.post('/register', user);
         
@@ -33,7 +32,6 @@ const Register = () => {
         alert("שגיאה בהרשמה: " + (err.response?.data?.error || "נסה שוב"));
     }
 };
-
     return (
         <div className="container">
             <h1>רישום למערכת</h1>

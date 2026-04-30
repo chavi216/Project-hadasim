@@ -1,6 +1,4 @@
-
 import db from '../Config/db.js';
-
 const User = {
     newuser: async (userData) => {
        const { id, firstname, lastname, class_id, role, lat, lon } = userData;
@@ -25,7 +23,6 @@ const User = {
         const [rows] = await db.execute(query, [teacherId]);
         return rows;
     },
-
 findLocations: async (teacherId) => {
     const query = `
         SELECT 
@@ -58,8 +55,6 @@ saveLocation : async (id, lat, lng, time) => {
     const formattedTime = time ? time.replace('T', ' ').replace('Z', '') : new Date();
     await db.execute(query, [id, lat, lng, formattedTime]);
 },
-
-
 getTeacherLocationByClass: async (classId) => {
         const query = `
             SELECT l.latitude, l.longitude 
@@ -70,12 +65,7 @@ getTeacherLocationByClass: async (classId) => {
         `;
         const [rows] = await db.execute(query, [classId]);
         return rows.length > 0 ? rows[0] : null;
-    }
-
-
-
-    
+    }   
 };
-
 
 export default User;

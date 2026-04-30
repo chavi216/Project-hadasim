@@ -4,7 +4,6 @@ import api from '../api/axios';
 const Home = () => {
     const [id, setid] = useState('');
     const navigate = useNavigate();
-
     const handleLogin = async () => {
         if (id.length !== 9) return alert("תעודת זהות לא תקינה!");
         try {
@@ -17,7 +16,6 @@ const Home = () => {
             alert(err.response?.data?.error || "גישה נדחתה!");
         }
     };
-
     return (
         <div className="container">
             <h1>מערכת לניהול טיול שנתי</h1>
@@ -32,5 +30,4 @@ const Home = () => {
         </div>
     );
 };
-
 export default Home;
