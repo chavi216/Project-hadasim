@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express';
+import * as userController from '../controllers/userController.js';
 const router = express.Router();
-const userController = require('../controllers/userController');
 
 router.post('/register', userController.register);
 router.post('/login', userController.login);
@@ -12,4 +12,4 @@ router.get('/my-students/:teacherId',userController.verifyTeacher, userControlle
 router.get('/:id',userController.verifyTeacher, userController.getUserByid);
 router.get('/', userController.verifyTeacher, userController.getAllUsers);
 
-module.exports = router;
+export default router;

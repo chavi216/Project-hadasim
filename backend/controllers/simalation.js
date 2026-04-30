@@ -1,5 +1,5 @@
-const db = require('../config/db');
-const user = require('../Models/userModel'); 
+import db from '../Config/db.js';
+import user from '../Models/userModel.js';
 
 const simulateMovement = async () => {
     try {

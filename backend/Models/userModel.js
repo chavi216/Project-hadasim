@@ -1,12 +1,20 @@
-const db = require('../Config/db');
+
+import db from '../Config/db.js';
 
 const User = {
-    newuser: async (newStudent) => {
-        const { id, first_name, last_name, class_id, role } = newStudent;
-      return db.execute(
-    'INSERT INTO users (id, first_name, last_name, class_id, role) VALUES (?, ?, ?, ?, ?)',
-    [id, first_name, last_name, class_id, role]
-);
+    newuser: async (userData) => {
+       const { id, firstname, lastname, class_id, role, lat, lon } = userData;
+        
+        await db.execute(
+            'INSERT INTO users (id, first_name, last_name, class_id, role) VALUES (?, ?, ?, ?, ?)',
+            [id, firstname, lastname, class_id, role]
+        );
+        if (lat !== undefined && lon !== undefined) {
+            await db.execute(
+                'INSERT INTO locations (user_id, latitude, longitude, recorded_at) VALUES (?, ?, ?, NOW())',
+                [id, lat, lon]
+            );
+        }
     },
     findStudents: async (teacherId) => {
         const query = `
@@ -17,15 +25,13 @@ const User = {
         const [rows] = await db.execute(query, [teacherId]);
         return rows;
     },
+
 findLocations: async (teacherId) => {
     const query = `
         SELECT 
             u.id, u.first_name, u.last_name, u.class_id, u.role,
             l.latitude, l.longitude, l.recorded_at,
-            CASE 
-                WHEN u.class_id = (SELECT class_id FROM users WHERE id = ?) AND u.role = 'student' 
-                THEN 1 ELSE 0 
-            END AS is_my_student
+            IF(u.class_id = (SELECT class_id FROM (SELECT * FROM users) AS temp WHERE id = ?), 1, 0) AS is_my_student
         FROM users u
         LEFT JOIN (
             SELECT l1.* FROM locations l1
@@ -38,7 +44,7 @@ findLocations: async (teacherId) => {
     `;
     const [locations] = await db.execute(query, [teacherId]);
     return locations;
-},
+}, 
     findByid: async (id) => {
         const [byid] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
         return byid[0];
@@ -72,7 +78,4 @@ getTeacherLocationByClass: async (classId) => {
 };
 
 
-
-
-
-module.exports = User;
+export default User;
